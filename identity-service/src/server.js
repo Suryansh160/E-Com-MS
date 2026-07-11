@@ -26,6 +26,11 @@ app.use((req, res, next) => {
 
 const redisClient = new Redis(process.env.REDIS_URL)
 
+app.use((req, res, next) => {
+  req.redisClient = redisClient
+  next()
+})
+
 const rateLimiter = new RateLimiterRedis({
   storeClient: redisClient,
   keyPrefix: 'middleware',
