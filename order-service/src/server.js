@@ -51,7 +51,7 @@ const startServer = async () => {
     )
 
     app.listen(PORT, () => {
-      logger.info(`Order Service running on port ${PORT}`)
+      logger.info(`Order Service is listening to port ${PORT}`)
     })
   } catch (error) {
     logger.error(`Failed to start Order Service: ${error.message}`)

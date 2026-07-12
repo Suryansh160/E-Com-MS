@@ -52,5 +52,5 @@ app.use('/api/auth', router)
 app.use(errorHandler)
 
 app.listen(PORT, () => {
-  logger.info(`Server is listening to port ${PORT}`)
+  logger.info(`Identity service is listening to port ${PORT}`)
 })

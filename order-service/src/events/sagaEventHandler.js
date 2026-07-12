@@ -1,6 +1,12 @@
 const Order = require('../models/order-model')
 const logger = require('../utils/logger')
 const { publishEvent } = require('../utils/rabbitmq')
+const redisClient = require('../utils/redisClient')
+
+const finalizeOrder = async order => {
+  await order.save()
+  await redisClient.del(`order:${order._id}`)
+}
 
 const handleSagaEvent = async (payload, routingKey) => {
   const { orderId } = payload
@@ -8,6 +14,7 @@ const handleSagaEvent = async (payload, routingKey) => {
   const order = await Order.findById(orderId)
   if (!order) {
     logger.error(`Received [${routingKey}] for unknown order: ${orderId}`)
+    return
   }
 
   switch (routingKey) {
@@ -37,7 +44,7 @@ const handleSagaEvent = async (payload, routingKey) => {
     order.paymentStatus === 'completed'
   ) {
     order.status = 'confirmed'
-    await order.save()
+    await finalizeOrder(order)
     logger.info(`Order ${orderId} confirmed`)
     await publishEvent('order.confirmed', {
       orderId: order._id.toString(),
@@ -48,7 +55,7 @@ const handleSagaEvent = async (payload, routingKey) => {
     order.paymentStatus === 'failed'
   ) {
     order.status = 'failed'
-    await order.save()
+    await finalizeOrder(order)
     logger.info(
       `Order ${orderId} failed (inventory: ${order.inventoryStatus}, payment: ${order.paymentStatus})`
     )
@@ -57,7 +64,7 @@ const handleSagaEvent = async (payload, routingKey) => {
       userId: order.userId
     })
   } else {
-    await order.save()
+    await finalizeOrder(order)
     logger.info(
       `Order ${orderId} updated, still pending (inventory: ${order.inventoryStatus}, payment: ${order.paymentStatus})`
     )
