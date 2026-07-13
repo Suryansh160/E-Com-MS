@@ -7,6 +7,8 @@ const mongoose = require('mongoose')
 const logger = require('./utils/logger')
 const connectDB = require('./database/db')
 const productRoutes = require('./routes/product-routes')
+const { connectRabbitMQ, consumeEvent } = require('./utils/rabbitmq')
+const handleOrderCreated = require('./utils/eventHandler')
 
 const app = express()
 const PORT = process.env.PORT || 3003
@@ -25,6 +27,14 @@ app.use('/api/products', productRoutes)
 const startServer = async () => {
   try {
     await connectDB()
+
+    await connectRabbitMQ()
+
+    await consumeEvent(
+      'inventory-service-queue',
+      ['order.created'],
+      handleOrderCreated
+    )
 
     app.listen(PORT, () => {
       logger.info(`Inventory Service is listening to port ${PORT}`)
