@@ -5,6 +5,11 @@ const redisClient = require('../utils/redisClient')
 const { createOrderSchema } = require('../utils/validator')
 const axios = require('axios')
 
+const buildInventoryProductUrl = (productId, baseUrl = process.env.INVENTORY_SERVICE_URL) => {
+  const normalizedBaseUrl = (baseUrl || 'http://localhost:3003').replace(/\/$/, '')
+  return `${normalizedBaseUrl}/api/products/get/${productId}`
+}
+
 const createOrder = async (req, res) => {
   try {
     const { error, value } = createOrderSchema.validate(req.body)
@@ -80,10 +85,9 @@ const createOrder = async (req, res) => {
 }
 
 const getProductPrice = async productId => {
-  try {    
-    const response = await axios.get(
-      `${process.env.INVENTORY_SERVICE_URL}/v1/products/get/${productId}`
-    )
+  try {
+    const url = buildInventoryProductUrl(productId)
+    const response = await axios.get(url)
 
     if (!response.data.success || !response.data.product) {
       throw new Error(`Product ${productId} not found`)
@@ -169,4 +173,9 @@ const getOrders = async (req, res) => {
   }
 }
 
-module.exports = { createOrder, getOrderById, getOrders }
+module.exports = {
+  createOrder,
+  getOrderById,
+  getOrders,
+  buildInventoryProductUrl
+}
