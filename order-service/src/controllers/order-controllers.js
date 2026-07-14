@@ -3,6 +3,7 @@ const logger = require('../utils/logger')
 const { publishEvent } = require('../utils/rabbitmq')
 const redisClient = require('../utils/redisClient')
 const { createOrderSchema } = require('../utils/validator')
+const axios = require('axios')
 
 const createOrder = async (req, res) => {
   try {
@@ -79,7 +80,22 @@ const createOrder = async (req, res) => {
 }
 
 const getProductPrice = async productId => {
-  return 100
+  try {    
+    const response = await axios.get(
+      `${process.env.INVENTORY_SERVICE_URL}/v1/products/get/${productId}`
+    )
+
+    if (!response.data.success || !response.data.product) {
+      throw new Error(`Product ${productId} not found`)
+    }
+
+    return response.data.product.price
+  } catch (error) {
+    logger.error(
+      `Error fetching price for product ${productId}: ${error.message}`
+    )
+    throw new Error(`Unable to fetch price for product ${productId}`)
+  }
 }
 
 const getOrderById = async (req, res) => {
